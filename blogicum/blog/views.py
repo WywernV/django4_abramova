@@ -21,7 +21,6 @@ class RegistrationView(CreateView):
 
 
 def get_visible_posts():
-    """Базовый набор постов для Главной и Категорий: только публичные."""
     return Post.objects.select_related(
         'category', 'location', 'author'
     ).filter(
@@ -30,15 +29,14 @@ def get_visible_posts():
         pub_date__lte=timezone.now()
     ).annotate(comment_count=Count('comments')).order_by('-pub_date')
 
+
 def index(request):
-    """Главная страница: всегда только публичные посты."""
     post_list = get_visible_posts()
     paginator = Paginator(post_list, 10)
     page_obj = paginator.get_page(request.GET.get('page'))
     return render(request, 'blog/index.html', {'page_obj': page_obj})
 
 def category_posts(request, category_slug):
-    """Категория: только публичные посты этой категории."""
     category = get_object_or_404(Category, slug=category_slug, is_published=True)
     post_list = get_visible_posts().filter(category=category)
     paginator = Paginator(post_list, 10)
@@ -84,7 +82,6 @@ def post_detail(request, id):
 
 
 def profile(request, username):
-    """Страница профиля пользователя"""
     profile_user = get_object_or_404(User, username=username)
     
     if request.user == profile_user:
@@ -111,7 +108,6 @@ def profile(request, username):
 
 @login_required
 def create_post(request):
-    """Создание нового поста"""
     if request.method == 'POST':
         form = PostForm(request.POST, request.FILES)
         if form.is_valid():
@@ -135,7 +131,6 @@ def create_post(request):
 
 @login_required
 def edit_post(request, id):
-    """Редактирование поста"""
     post = get_object_or_404(Post, id=id)
     
     if request.user != post.author:
@@ -154,7 +149,6 @@ def edit_post(request, id):
 
 @login_required
 def delete_post(request, id):
-    """Удаление поста - используем шаблон create.html для подтверждения"""
     post = get_object_or_404(Post, id=id)
     
     if request.user != post.author:
@@ -170,7 +164,6 @@ def delete_post(request, id):
 
 @login_required
 def add_comment(request, post_id):
-    """Добавление нового комментария"""
     post = get_object_or_404(Post, id=post_id)
     
     if not post.is_published or post.pub_date > timezone.now():
@@ -190,7 +183,6 @@ def add_comment(request, post_id):
 
 @login_required
 def edit_comment(request, post_id, comment_id):
-    """Редактирование комментария"""
     post = get_object_or_404(Post, id=post_id)
     comment = get_object_or_404(Comment, id=comment_id, post=post)
 
@@ -213,7 +205,6 @@ def edit_comment(request, post_id, comment_id):
 
 @login_required
 def delete_comment(request, post_id, comment_id):
-    """Удаление комментария"""
     post = get_object_or_404(Post, id=post_id)
     comment = get_object_or_404(Comment, id=comment_id, post=post)
 

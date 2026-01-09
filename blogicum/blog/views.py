@@ -32,7 +32,7 @@ def get_visible_posts():
 
 def index(request):
     """Главная страница: всегда только публичные посты."""
-    post_list = get_visible_posts() # Убрали request.user
+    post_list = get_visible_posts()
     paginator = Paginator(post_list, 10)
     page_obj = paginator.get_page(request.GET.get('page'))
     return render(request, 'blog/index.html', {'page_obj': page_obj})

@@ -30,31 +30,27 @@ def get_paginated_page(request, queryset, per_page=10):
     return paginator.get_page(page_number)
 
 
-def get_visible_posts(request_user=None):
+def get_visible_posts(request_user=None, for_profile=False, profile_user=None):
     posts = Post.objects.select_related(
         'category', 'location', 'author'
     ).filter(
         category__is_published=True
     )
     
-    if not request_user or not request_user.is_authenticated:
+    if not for_profile:
         return posts.filter(
             is_published=True,
             pub_date__lte=timezone.now()
         )
-    
-    published_posts = posts.filter(
-        is_published=True,
-        pub_date__lte=timezone.now()
-    )
-    
-    user_special_posts = posts.filter(
-        author=request_user
-    ).filter(
-        Q(is_published=False) | Q(pub_date__gt=timezone.now())
-    )
-    
-    return (published_posts | user_special_posts).distinct()
+    else:
+        if request_user and request_user.is_authenticated and request_user == profile_user:
+            return posts.filter(author=profile_user)
+        else:
+            return posts.filter(
+                author=profile_user,
+                is_published=True,
+                pub_date__lte=timezone.now()
+            )
 
 
 def index(request):
@@ -66,9 +62,11 @@ def index(request):
 
 def category_posts(request, category_slug):
     category = get_object_or_404(Category, slug=category_slug, is_published=True)
+    
     post_list = get_visible_posts(request.user).filter(category=category)
     post_list_with_comments = annotate_comments_count(post_list)
     page_obj = get_paginated_page(request, post_list_with_comments, 10)
+    
     return render(request, 'blog/category.html', {
         'category': category, 
         'page_obj': page_obj
@@ -130,7 +128,7 @@ def profile(request, username):
     page_obj = get_paginated_page(request, user_posts_with_comments, 10)
     
     return render(request, 'blog/profile.html', {
-        'profile': profile_user, 
+        'profile': profile_user,
         'page_obj': page_obj
     })
 
@@ -144,7 +142,7 @@ def create_post(request):
             post.author = request.user
             if not post.pub_date:
                 post.pub_date = timezone.now()
-           
+            
             if post.category and not post.category.is_published:
                 form.add_error('category', 'Эта категория не опубликована')
             elif post.location and not post.location.is_published:
@@ -186,7 +184,7 @@ def delete_post(request, post_id):
     if request.method == 'POST':
         post.delete()
         return redirect('blog:profile', username=request.user.username)
-
+    
     form = PostForm(instance=post)
     return render(request, 'blog/create.html', {'form': form})
 

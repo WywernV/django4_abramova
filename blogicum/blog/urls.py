@@ -20,6 +20,3 @@ urlpatterns = [
          views.delete_comment, name='delete_comment'),
     path('auth/registration/', views.RegistrationView.as_view(), name='registration'),
 ]
-
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
